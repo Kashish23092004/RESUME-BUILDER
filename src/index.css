@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded transition;
+  }
+
+  .btn-primary {
+    @apply bg-blue-600 text-white;
+  }
+
+  .btn-primary:hover {
+    @apply bg-blue-700;
+  }
+
+  .btn-danger {
+    @apply text-red-500;
+  }
+
+  .btn-danger:hover {
+    @apply text-red-700;
+  }
+
+  .btn-outline {
+    @apply border;
+  }
+
+  .btn-outline:hover {
+    @apply bg-gray-100;
+  }
+
+  .input {
+    @apply border p-2 rounded w-full;
+  }
+
+  .label {
+    @apply block font-medium mb-1 capitalize;
+  }
+}
