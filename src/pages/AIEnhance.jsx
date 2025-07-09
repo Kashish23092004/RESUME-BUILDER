@@ -10,7 +10,7 @@ export default function AIEnhance() {
     const text = sessionStorage.getItem("resumeText");
     if (text) {
       setResumeText(text);
-      setOriginal(text); // Directly display full resume content as original summary
+      setOriginal(text); 
     }
   }, []);
 

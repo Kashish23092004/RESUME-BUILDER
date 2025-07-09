@@ -1,6 +1,8 @@
-
 import React, { useRef, useState, useEffect } from "react";
 import { Upload, ZoomIn, ZoomOut, User, GraduationCap, Briefcase, Brain, Download, Palette, Type, Plus, X } from "lucide-react";
+import html2canvas from "html2canvas";
+
+import jsPDF from "jspdf";
 
 const ManualEdit = () => {
   const fileInputRef = useRef();
@@ -9,7 +11,8 @@ const ManualEdit = () => {
   const [fontSize, setFontSize] = useState(14);
   const [selectedColor, setSelectedColor] = useState("#3B82F6");
   const [showCustomization, setShowCustomization] = useState(false);
-  
+  const printRef = useRef(); 
+
   const [resumeData, setResumeData] = useState({
     name: "",
     role: "",
@@ -68,11 +71,11 @@ const ManualEdit = () => {
       const newData = { ...prev };
       const keys = path.split('.');
       let current = newData;
-      
+
       for (let i = 0; i < keys.length - 1; i++) {
         const key = keys[i];
         const nextKey = keys[i + 1];
-        
+
         if (!isNaN(nextKey)) {
           if (!current[key]) current[key] = [];
         } else {
@@ -80,7 +83,7 @@ const ManualEdit = () => {
         }
         current = current[key];
       }
-      
+
       current[keys[keys.length - 1]] = value;
       return newData;
     });
@@ -91,11 +94,11 @@ const ManualEdit = () => {
       const newData = { ...prev };
       const keys = path.split('.');
       let current = newData;
-      
+
       for (let i = 0; i < keys.length - 1; i++) {
         current = current[keys[i]];
       }
-      
+
       if (!current[keys[keys.length - 1]]) {
         current[keys[keys.length - 1]] = [];
       }
@@ -109,24 +112,72 @@ const ManualEdit = () => {
       const newData = { ...prev };
       const keys = path.split('.');
       let current = newData;
-      
+
       for (let i = 0; i < keys.length - 1; i++) {
         current = current[keys[i]];
       }
-      
+
       current[keys[keys.length - 1]].splice(index, 1);
       return newData;
     });
   };
 
-  const downloadResume = () => {
-    const element = document.createElement('a');
-    const file = new Blob([JSON.stringify(resumeData, null, 2)], { type: 'application/json' });
-    element.href = URL.createObjectURL(file);
-    element.download = 'resume_data.json';
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+  const handleDownloadPDF = async () => {
+    const element = printRef.current; 
+    if (!element) {
+      alert("Resume preview element not found for PDF generation.");
+      return;
+    }
+
+    try {
+      const canvas = await html2canvas(element, { scale: 2 }); 
+      const imgData = canvas.toDataURL("image/png");
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: "a4",
+      });
+
+      const imgWidth = 595; 
+      const pageHeight = 842; 
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save('my-resume.pdf');
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    }
+  };
+
+  const handleDownloadJSON = () => {
+    try {
+      const json = JSON.stringify(resumeData, null, 2); // null, 2 for pretty-printing
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'resume_data.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url); // Clean up the URL object
+    } catch (error) {
+      console.error("Error downloading JSON:", error);
+      alert("Failed to download JSON data.");
+    }
   };
 
   const handleFileUpload = (event) => {
@@ -137,8 +188,10 @@ const ManualEdit = () => {
         try {
           const data = JSON.parse(e.target.result);
           setResumeData(data);
+          alert('Resume data loaded successfully!');
         } catch (error) {
-          alert('Invalid JSON file');
+          alert('Invalid JSON file. Please upload a valid resume JSON file.');
+          console.error("JSON parsing error:", error);
         }
       };
       reader.readAsText(file);
@@ -147,7 +200,7 @@ const ManualEdit = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header Controls */}
+     
       <div className="flex justify-between items-center mb-4">
         <button
           onClick={() => setShowCustomization(!showCustomization)}
@@ -155,8 +208,17 @@ const ManualEdit = () => {
         >
           <Palette size={16} /> Customize Resume
         </button>
-        
+
         <div className="flex items-center gap-2">
+      
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden" 
+            accept=".json"
+          />
+         
           <button onClick={() => handleZoom(25)} className="p-2 text-gray-700 hover:text-black border rounded">
             <ZoomIn size={20} />
           </button>
@@ -167,7 +229,6 @@ const ManualEdit = () => {
         </div>
       </div>
 
-      {/* Customization Panel */}
       {showCustomization && (
         <div className="bg-white border rounded-lg p-4 mb-4 shadow-sm">
           <h3 className="font-semibold mb-4">Customize Resume</h3>
@@ -214,11 +275,10 @@ const ManualEdit = () => {
       )}
 
       <div className="flex gap-6">
-        {/* Form Section */}
+       
         <div className="w-1/2 bg-white rounded-lg p-6 shadow-sm max-h-screen overflow-y-auto">
           <h2 className="text-xl font-semibold mb-4">Edit Resume</h2>
-          
-          {/* Personal Info */}
+
           <div className="mb-6">
             <h3 className="font-medium mb-3 flex items-center gap-2">
               <User size={18} style={{ color: selectedColor }} />
@@ -270,7 +330,6 @@ const ManualEdit = () => {
             </div>
           </div>
 
-          {/* Summary */}
           <div className="mb-6">
             <h3 className="font-medium mb-3">Professional Summary</h3>
             <textarea
@@ -281,7 +340,6 @@ const ManualEdit = () => {
             />
           </div>
 
-          {/* Experience */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium flex items-center gap-2">
@@ -372,7 +430,6 @@ const ManualEdit = () => {
             ))}
           </div>
 
-          {/* Education */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium flex items-center gap-2">
@@ -430,7 +487,6 @@ const ManualEdit = () => {
             ))}
           </div>
 
-          {/* Achievements */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium flex items-center gap-2">
@@ -473,7 +529,6 @@ const ManualEdit = () => {
             ))}
           </div>
 
-          {/* Skills */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium flex items-center gap-2">
@@ -509,8 +564,6 @@ const ManualEdit = () => {
               </div>
             ))}
           </div>
-
-          {/* Languages */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium flex items-center gap-2">
@@ -547,7 +600,6 @@ const ManualEdit = () => {
             ))}
           </div>
 
-          {/* Projects */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium flex items-center gap-2">
@@ -596,8 +648,6 @@ const ManualEdit = () => {
               </div>
             ))}
           </div>
-
-          {/* Courses */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium flex items-center gap-2">
@@ -641,168 +691,162 @@ const ManualEdit = () => {
           </div>
         </div>
 
-        {/* Preview Section */}
-        <div className="w-1/2">
-          <div
-            className="bg-white border rounded-lg p-6 shadow-sm max-h-screen overflow-y-auto"
-            style={{
-              zoom: `${zoom}%`,
-              fontFamily: selectedFont,
-              fontSize: `${fontSize}px`
-            }}
-          >
-            {/* Header */}
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold mb-2" style={{ color: selectedColor }}>
-                {resumeData.name || "Full Name"}
-              </h1>
-              <p className="text-lg mb-3" style={{ color: selectedColor }}>
-                {resumeData.role || "Role or Designation"}
-              </p>
-              <div className="flex justify-center gap-4 text-sm">
-                <span>{resumeData.phone || "Phone Number"}</span>
-                <span>{resumeData.email || "Email Address"}</span>
-                <span>{resumeData.linkedin || "LinkedIn URL"}</span>
-              </div>
-              <p className="text-sm mt-1">{resumeData.location || "Location"}</p>
+        <div ref={printRef}
+          className="w-1/2 bg-white border rounded-lg p-6 shadow-sm max-h-screen overflow-y-auto"
+          style={{
+            zoom: `${zoom}%`,
+            fontFamily: selectedFont,
+            fontSize: `${fontSize}px`
+          }}
+        >
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold mb-2" style={{ color: selectedColor }}>
+              {resumeData.name || "Full Name"}
+            </h1>
+            <p className="text-lg mb-3" style={{ color: selectedColor }}>
+              {resumeData.role || "Role or Designation"}
+            </p>
+            <div className="flex justify-center gap-4 text-sm">
+              <span>{resumeData.phone || "Phone Number"}</span>
+              <span>{resumeData.email || "Email Address"}</span>
+              <span>{resumeData.linkedin || "LinkedIn URL"}</span>
             </div>
-
-            {/* Professional Summary */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
-                Professional Summary
-              </h2>
-              <p className="text-justify">
-                {resumeData.summary || "Professional summary text here."}
-              </p>
-            </div>
-
-            {/* Work Experience */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
-                Work Experience
-              </h2>
-              {resumeData.experience.map((exp, index) => (
-                <div key={index} className="mb-4">
-                  <div className="flex justify-between items-start mb-1">
-                    <div>
-                      <h3 className="font-semibold">{exp.title || "Job Title"}</h3>
-                      <p className="text-sm">{exp.companyName || "Company Name"}</p>
-                    </div>
-                    <div className="text-right text-sm">
-                      <p>{exp.date || "Start - End Dates"}</p>
-                      <p>{exp.companyLocation || "Company Location"}</p>
-                    </div>
+            <p className="text-sm mt-1">{resumeData.location || "Location"}</p>
+          </div>
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+              Professional Summary
+            </h2>
+            <p className="text-justify">
+              {resumeData.summary || "Professional summary text here."}
+            </p>
+          </div>
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+              Work Experience
+            </h2>
+            {resumeData.experience.map((exp, index) => (
+              <div key={index} className="mb-4">
+                <div className="flex justify-between items-start mb-1">
+                  <div>
+                    <h3 className="font-semibold">{exp.title || "Job Title"}</h3>
+                    <p className="text-sm">{exp.companyName || "Company Name"}</p>
                   </div>
-                  <ul className="list-disc list-inside text-sm">
-                    {exp.accomplishment.map((acc, accIndex) => (
-                      acc && <li key={accIndex}>{acc}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-
-            {/* Education */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
-                Education
-              </h2>
-              {resumeData.education.map((edu, index) => (
-                <div key={index} className="mb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold">{edu.degree || "Degree Name"}</h3>
-                      <p className="text-sm">{edu.institution || "Institution Name"}</p>
-                    </div>
-                    <div className="text-right text-sm">
-                      <p>{edu.duration || "Start - End Dates"}</p>
-                      <p>{edu.location || "Institution Location"}</p>
-                    </div>
+                  <div className="text-right text-sm">
+                    <p>{exp.date || "Start - End Dates"}</p>
+                    <p>{exp.companyLocation || "Company Location"}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Achievements */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
-                Achievements
-              </h2>
-              {resumeData.achievements.map((achievement, index) => (
-                <div key={index} className="mb-3">
-                  <h3 className="font-semibold">{achievement.keyAchievements || "Achievement Title"}</h3>
-                  <p className="text-sm text-justify">{achievement.describe || "Description of the achievement"}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Skills */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
-                Skills
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {resumeData.skills.map((skill, index) => (
-                  skill && (
-                    <span key={index} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                      {skill}
-                    </span>
-                  )
-                ))}
+                <ul className="list-disc list-inside text-sm">
+                  {exp.accomplishment.map((acc, accIndex) => (
+                    acc && <li key={accIndex}>{acc}</li>
+                  ))}
+                </ul>
               </div>
-            </div>
+            ))}
+          </div>
 
-            {/* Languages */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
-                Languages
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {resumeData.languages.map((lang, index) => (
-                  lang && (
-                    <span key={index} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                      {lang}
-                    </span>
-                  )
-                ))}
-              </div>
-            </div>
-
-            {/* Projects */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
-                Projects
-              </h2>
-              {resumeData.projects.map((project, index) => (
-                <div key={index} className="mb-4">
-                  <div className="flex justify-between items-start mb-1">
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{project.title || "Project Title"}</h3>
-                      <p className="text-sm text-justify">{project.description || "Project Description"}</p>
-                    </div>
-                    <div className="text-right text-sm">
-                      <p>{project.duration || "Project Duration"}</p>
-                    </div>
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+              Education
+            </h2>
+            {resumeData.education.map((edu, index) => (
+              <div key={index} className="mb-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold">{edu.degree || "Degree Name"}</h3>
+                    <p className="text-sm">{edu.institution || "Institution Name"}</p>
+                  </div>
+                  <div className="text-right text-sm">
+                    <p>{edu.duration || "Start - End Dates"}</p>
+                    <p>{edu.location || "Institution Location"}</p>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
+          </div>
 
-            {/* Courses */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
-                Courses
-              </h2>
-              {resumeData.courses.map((course, index) => (
-                <div key={index} className="mb-3">
-                  <h3 className="font-semibold">{course.title || "Course Title"}</h3>
-                  <p className="text-sm text-justify">{course.description || "Course Description"}</p>
-                </div>
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+              Achievements
+            </h2>
+            {resumeData.achievements.map((achievement, index) => (
+              <div key={index} className="mb-3">
+                <h3 className="font-semibold">{achievement.keyAchievements || "Achievement Title"}</h3>
+                <p className="text-sm text-justify">{achievement.describe || "Description of the achievement"}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+              Skills
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {resumeData.skills.map((skill, index) => (
+                skill && (
+                  <span key={index} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
+                    {skill}
+                  </span>
+                )
               ))}
             </div>
           </div>
+
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+              Languages
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {resumeData.languages.map((lang, index) => (
+                lang && (
+                  <span key={index} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
+                    {lang}
+                  </span>
+                )
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+              Projects
+            </h2>
+            {resumeData.projects.map((project, index) => (
+              <div key={index} className="mb-4">
+                <div className="flex justify-between items-start mb-1">
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{project.title || "Project Title"}</h3>
+                    <p className="text-sm text-justify">{project.description || "Project Description"}</p>
+                  </div>
+                  <div className="text-right text-sm">
+                    <p>{project.duration || "Project Duration"}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+              Courses
+            </h2>
+            {resumeData.courses.map((course, index) => (
+              <div key={index} className="mb-3">
+                <h3 className="font-semibold">{course.title || "Course Title"}</h3>
+                <p className="text-sm text-justify">{course.description || "Course Description"}</p>
+              </div>
+            ))}
+          </div>
         </div>
+      </div>
+
+      <div className="flex justify-center mt-8">
+        <button
+          onClick={handleDownloadPDF}
+          className="bg-green-600 text-white px-6 py-3 rounded-lg inline-flex items-center gap-2 text-lg hover:bg-green-700 shadow-lg"
+        >
+          <Download size={24} /> Download Resume as PDF
+        </button>
       </div>
     </div>
   );

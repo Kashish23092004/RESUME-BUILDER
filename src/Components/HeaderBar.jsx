@@ -10,24 +10,31 @@ import {
   shareTextOnTwitter,
   nativeWebShare,
 } from "../utils/shareUtils";
-import handleDownloadPDF from "../utils/handleDownloadpdf";
+
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 export default function HeaderBar({ resumeRef, resumeData, setResumeData }) {
   const downloadResume = () => {
-  const resumeElement = resumeRef.current;
-  if (!resumeElement) return;
+    if (!resumeRef || !resumeRef.current) {
+      toast.error("❌ Resume preview not found!");
+      return;
+    }
 
-  html2canvas(resumeElement, { scale: 2 }).then((canvas) => {
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "pt", "a4");
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    const resumeElement = resumeRef.current;
 
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    pdf.save("resume.pdf");
-  });
-};
+    html2canvas(resumeElement, { scale: 2 }).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "pt", "a4");
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save("resume.pdf");
+    });
+  };
+
   const handleShare = () => {
     const message = "📄 Check out my resume!";
     shareTextOnWhatsApp(message);
@@ -157,13 +164,7 @@ export default function HeaderBar({ resumeRef, resumeData, setResumeData }) {
             Share
           </button>
 
-          <button
-            onClick={downloadResume}
-            className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-md text-sm font-medium shadow hover:bg-red-600 transition-all"
-          >
-            <FaDownload className="text-lg" />
-            Download
-          </button>
+          
         </div>
       </div>
     </div>
