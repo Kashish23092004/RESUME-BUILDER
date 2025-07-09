@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from "react";
-import { downloadSectionAsPDF, shareEnhancedContent } from "../utils/exportUtils";
 
 export default function AIEnhance() {
   const [resumeText, setResumeText] = useState("");

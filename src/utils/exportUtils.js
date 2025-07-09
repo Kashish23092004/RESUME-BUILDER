@@ -1,89 +1,41 @@
-// utils/exportUtils.js
-
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-/**
- * Downloads any section of the DOM as PDF using a ref.
- * @param {React.RefObject} ref
- */
-export const downloadSectionAsPDF = async (ref) => {
-  if (!ref?.current) return;
+export function downloadSectionAsPDF(ref, filename = "resume.pdf") {
+  if (!ref.current) return;
 
-  const canvas = await html2canvas(ref.current);
-  const imgData = canvas.toDataURL("image/png");
+  html2canvas(ref.current, {
+    scale: 2,
+    useCORS: true,
+    logging: true,
+  }).then((canvas) => {
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
 
-  const pdf = new jsPDF("p", "mm", "a4");
-  const pdfWidth = pdf.internal.pageSize.getWidth();
-  const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
 
-  pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-  pdf.save("enhanced-content.pdf");
-};
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-/**
- * Shares resume content using Web Share API or fallback to WhatsApp
- * @param {string} content
- */
-export const shareEnhancedContent = (content) => {
-  const message = `🚀 Here's my enhanced resume content:\n\n${content}`;
+    let position = 0;
 
-  if (navigator.share) {
-    navigator
-      .share({
-        title: "My Enhanced Resume Content",
-        text: message,
-        url: window.location.href,
-      })
-      .catch((err) => console.error("Sharing failed", err));
-  } else {
-    const whatsappURL = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappURL, "_blank");
-  }
-};
+    if (imgHeight <= pageHeight) {
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    } else {
+      let heightLeft = imgHeight;
+      let y = 0;
 
-/**
- * Direct share to WhatsApp
- * @param {string} text
- */
-export const shareTextOnWhatsApp = (text) => {
-  const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-  window.open(url, "_blank");
-};
-
-/**
- * Direct share to Facebook
- * @param {string} text
- */
-export const shareTextOnFacebook = (text) => {
-  const url = `https://www.facebook.com/sharer/sharer.php?u=&quote=${encodeURIComponent(text)}`;
-  window.open(url, "_blank");
-};
-
-/**
- * Direct share to Twitter
- * @param {string} text
- */
-export const shareTextOnTwitter = (text) => {
-  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-  window.open(url, "_blank");
-};
-
-/**
- * Use native Web Share API if supported
- * @param {string} text
- */
-export const nativeWebShare = async (text) => {
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: "Resume Enhancement",
-        text,
-      });
-    } catch (error) {
-      console.error("Sharing failed:", error);
+      while (heightLeft > 0) {
+        pdf.addImage(imgData, "PNG", 0, y, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        if (heightLeft > 0) {
+          pdf.addPage();
+          y = -pageHeight;
+        }
+      }
     }
-  } else {
-    alert("Web Share not supported on this browser.");
-  }
-};
+
+    pdf.save(filename);
+  });
+}

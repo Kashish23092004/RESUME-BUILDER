@@ -1,157 +1,808 @@
-import React, { useRef, useState } from "react";
-import { ZoomIn, ZoomOut, Upload } from "lucide-react";
-import { useReactToPrint } from "react-to-print";
+
+import React, { useRef, useState, useEffect } from "react";
+import { Upload, ZoomIn, ZoomOut, User, GraduationCap, Briefcase, Brain, Download, Palette, Type, Plus, X } from "lucide-react";
 
 const ManualEdit = () => {
+  const fileInputRef = useRef();
   const [zoom, setZoom] = useState(100);
-  const [fontSize, setFontSize] = useState("text-base");
-  const [theme, setTheme] = useState("light");
-  const [fontFamily, setFontFamily] = useState("font-sans");
-  const printRef = useRef();
+  const [selectedFont, setSelectedFont] = useState("Arial");
+  const [fontSize, setFontSize] = useState(14);
+  const [selectedColor, setSelectedColor] = useState("#3B82F6");
+  const [showCustomization, setShowCustomization] = useState(false);
+  
+  const [resumeData, setResumeData] = useState({
+    name: "",
+    role: "",
+    phone: "",
+    email: "",
+    linkedin: "",
+    location: "",
+    summary: "",
+    experience: [
+      {
+        title: "",
+        companyName: "",
+        date: "",
+        companyLocation: "",
+        accomplishment: [""]
+      }
+    ],
+    education: [
+      {
+        degree: "",
+        institution: "",
+        duration: "",
+        location: ""
+      }
+    ],
+    achievements: [
+      {
+        keyAchievements: "",
+        describe: ""
+      }
+    ],
+    skills: [""],
+    languages: [""],
+    projects: [
+      {
+        title: "",
+        description: "",
+        duration: ""
+      }
+    ],
+    courses: [
+      {
+        title: "",
+        description: ""
+      }
+    ]
+  });
 
-  const handlePrint = useReactToPrint({ content: () => printRef.current });
+  const fonts = ["Arial", "Times New Roman", "Helvetica", "Georgia", "Lato", "Roboto"];
+  const colorPresets = ["#3B82F6", "#10B981", "#8B5CF6", "#1F2937"];
 
-  const resumeData = {
-    personalInfo: {
-      firstName: "Kashish",
-      lastName: "Singh",
-      email: "kashish2392004@gmail.com",
-      phone: "+91 8802273406",
-      address: "Jaitpur, Badarpur, South Delhi-110044",
-      jobTitle: "Full-Stack Web Developer"
-    },
-    education: [{
-      institution: "GURU GOBIND SINGH INDRAPRASTHA UNIVERSITY",
-      degree: "B.Tech",
-      location: "New Delhi, India",
-      startDate: "2022-01-01",
-      endDate: "2026-01-01",
-      gpa: "8.3"
-    }],
-    experience: [{
-      company: "CANTILEVER",
-      position: "Web Developer Intern",
-      location: "New Delhi, India",
-      startDate: "2024-06-01",
-      endDate: "2024-07-01",
-      description: "Learned full-stack web development and worked on real-world projects."
-    }],
-    skills: {
-      programmingLanguages: ["HTML", "CSS", "JavaScript", "C++", "Python"],
-      frameworks: ["React", "Node.js", "Tailwind", "Bootstrap"],
-      tools: ["VS Code", "GitHub"],
-      databases: ["MongoDB"]
-    },
-    projects: [{
-      name: "Online Code Editor",
-      technologies: "JavaScript, HTML",
-      description: "Built an online code editor using JS and HTML.",
-      link: "#"
-    }],
-    certifications: [{
-      name: "INTERNSHIP CERTIFICATE",
-      issuer: "Cantilever",
-      description: "Certified successfully."
-    }, {
-      name: "IDEATHON PARTICIPATION",
-      issuer: "GGSIPU",
-      description: "Participated in Ideathon event by GGSIPU."
-    }]
+  const handleZoom = (value) => setZoom((z) => Math.min(200, Math.max(50, z + value)));
+
+  const updateResumeData = (path, value) => {
+    setResumeData(prev => {
+      const newData = { ...prev };
+      const keys = path.split('.');
+      let current = newData;
+      
+      for (let i = 0; i < keys.length - 1; i++) {
+        const key = keys[i];
+        const nextKey = keys[i + 1];
+        
+        if (!isNaN(nextKey)) {
+          if (!current[key]) current[key] = [];
+        } else {
+          if (!current[key]) current[key] = {};
+        }
+        current = current[key];
+      }
+      
+      current[keys[keys.length - 1]] = value;
+      return newData;
+    });
+  };
+
+  const addArrayItem = (path, defaultItem) => {
+    setResumeData(prev => {
+      const newData = { ...prev };
+      const keys = path.split('.');
+      let current = newData;
+      
+      for (let i = 0; i < keys.length - 1; i++) {
+        current = current[keys[i]];
+      }
+      
+      if (!current[keys[keys.length - 1]]) {
+        current[keys[keys.length - 1]] = [];
+      }
+      current[keys[keys.length - 1]].push(defaultItem);
+      return newData;
+    });
+  };
+
+  const removeArrayItem = (path, index) => {
+    setResumeData(prev => {
+      const newData = { ...prev };
+      const keys = path.split('.');
+      let current = newData;
+      
+      for (let i = 0; i < keys.length - 1; i++) {
+        current = current[keys[i]];
+      }
+      
+      current[keys[keys.length - 1]].splice(index, 1);
+      return newData;
+    });
+  };
+
+  const downloadResume = () => {
+    const element = document.createElement('a');
+    const file = new Blob([JSON.stringify(resumeData, null, 2)], { type: 'application/json' });
+    element.href = URL.createObjectURL(file);
+    element.download = 'resume_data.json';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          setResumeData(data);
+        } catch (error) {
+          alert('Invalid JSON file');
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
   return (
-    <div className={`min-h-screen p-6 transition-all duration-300 ${theme === "dark" ? "bg-gray-900 text-white" : "bg-white text-black"}`}>
-      <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-        <h2 className="text-2xl font-bold flex items-center gap-2">🎯 AI Resume Auto-Fill</h2>
-        <div className="flex flex-wrap gap-2 items-center">
-          <button onClick={() => setZoom(z => Math.min(200, z + 25))}><ZoomIn /></button>
-          <button onClick={() => setZoom(z => Math.max(50, z - 25))}><ZoomOut /></button>
-
-          <select onChange={(e) => setFontSize(e.target.value)} className="border px-2 py-1 rounded">
-            <option value="text-sm">Small</option>
-            <option value="text-base" selected>Medium</option>
-            <option value="text-lg">Large</option>
-            <option value="text-xl">X-Large</option>
-          </select>
-
-          <select onChange={(e) => setTheme(e.target.value)} className="border px-2 py-1 rounded">
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
-
-          <select onChange={(e) => setFontFamily(e.target.value)} className="border px-2 py-1 rounded">
-            <option value="font-sans">Sans-serif</option>
-            <option value="font-serif">Serif</option>
-            <option value="font-mono">Monospace</option>
-          </select>
-
-          <button onClick={handlePrint} className="bg-green-600 text-white px-3 py-1 rounded">Download PDF</button>
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* Header Controls */}
+      <div className="flex justify-between items-center mb-4">
+        <button
+          onClick={() => setShowCustomization(!showCustomization)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 hover:bg-blue-700"
+        >
+          <Palette size={16} /> Customize Resume
+        </button>
+        
+        <div className="flex items-center gap-2">
+          <button onClick={() => handleZoom(25)} className="p-2 text-gray-700 hover:text-black border rounded">
+            <ZoomIn size={20} />
+          </button>
+          <span className="text-sm font-medium">{zoom}%</span>
+          <button onClick={() => handleZoom(-25)} className="p-2 text-gray-700 hover:text-black border rounded">
+            <ZoomOut size={20} />
+          </button>
         </div>
       </div>
 
-      <div
-        ref={printRef}
-        className={`max-w-4xl mx-auto rounded shadow-md transition-all duration-300 p-6 ${fontSize} ${fontFamily} ${theme === "dark" ? "bg-gray-800" : "bg-gray-100"}`}
-        style={{ zoom: `${zoom}%` }}
-      >
-        <section className="mb-4">
-          <h3 className="text-xl font-semibold mb-2 text-blue-600">👤 Personal Info</h3>
-          <p><b>Name:</b> {resumeData.personalInfo.firstName} {resumeData.personalInfo.lastName}</p>
-          <p><b>Email:</b> {resumeData.personalInfo.email}</p>
-          <p><b>Phone:</b> {resumeData.personalInfo.phone}</p>
-          <p><b>Job Title:</b> {resumeData.personalInfo.jobTitle}</p>
-          <p><b>Address:</b> {resumeData.personalInfo.address}</p>
-        </section>
-
-        <section className="mb-4">
-          <h3 className="text-xl font-semibold mb-2 text-blue-600">🎓 Education</h3>
-          {resumeData.education.map((edu, i) => (
-            <div key={i}>
-              <p><b>{edu.degree}</b> - {edu.institution} ({edu.location})</p>
-              <p>{edu.startDate} to {edu.endDate}</p>
-              <p>GPA: {edu.gpa}</p>
+      {/* Customization Panel */}
+      {showCustomization && (
+        <div className="bg-white border rounded-lg p-4 mb-4 shadow-sm">
+          <h3 className="font-semibold mb-4">Customize Resume</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Font Family</label>
+              <select
+                value={selectedFont}
+                onChange={(e) => setSelectedFont(e.target.value)}
+                className="w-full p-2 border rounded-lg"
+              >
+                {fonts.map(font => (
+                  <option key={font} value={font}>{font}</option>
+                ))}
+              </select>
             </div>
-          ))}
-        </section>
-
-        <section className="mb-4">
-          <h3 className="text-xl font-semibold mb-2 text-blue-600">💼 Experience</h3>
-          {resumeData.experience.map((exp, i) => (
-            <div key={i}>
-              <p><b>{exp.position}</b> at {exp.company}</p>
-              <p>{exp.startDate} to {exp.endDate} | {exp.location}</p>
-              <p>{exp.description}</p>
+            <div>
+              <label className="block text-sm font-medium mb-2">Font Size</label>
+              <input
+                type="range"
+                min="10"
+                max="20"
+                value={fontSize}
+                onChange={(e) => setFontSize(parseInt(e.target.value))}
+                className="w-full"
+              />
+              <span className="text-sm text-gray-600">{fontSize}px</span>
             </div>
-          ))}
-        </section>
-
-        <section className="mb-4">
-          <h3 className="text-xl font-semibold mb-2 text-blue-600">🧠 Skills</h3>
-          <p><b>Languages:</b> {resumeData.skills.programmingLanguages.join(', ')}</p>
-          <p><b>Frameworks:</b> {resumeData.skills.frameworks.join(', ')}</p>
-          <p><b>Tools:</b> {resumeData.skills.tools.join(', ')}</p>
-          <p><b>Databases:</b> {resumeData.skills.databases.join(', ')}</p>
-        </section>
-
-        <section className="mb-4">
-          <h3 className="text-xl font-semibold mb-2 text-blue-600">🚀 Projects</h3>
-          {resumeData.projects.map((p, i) => (
-            <div key={i}>
-              <p><b>{p.name}</b> - {p.technologies}</p>
-              <p>{p.description}</p>
+            <div>
+              <label className="block text-sm font-medium mb-2">Color Presets</label>
+              <div className="flex gap-2">
+                {colorPresets.map(color => (
+                  <button
+                    key={color}
+                    onClick={() => setSelectedColor(color)}
+                    className={`w-8 h-8 rounded-full border-2 ${selectedColor === color ? 'border-gray-800' : 'border-gray-300'}`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
             </div>
-          ))}
-        </section>
+          </div>
+        </div>
+      )}
 
-        <section>
-          <h3 className="text-xl font-semibold mb-2 text-blue-600">🎓 Certifications</h3>
-          {resumeData.certifications.map((c, i) => (
-            <div key={i}>
-              <p><b>{c.name}</b> - {c.issuer}</p>
-              <p>{c.description}</p>
+      <div className="flex gap-6">
+        {/* Form Section */}
+        <div className="w-1/2 bg-white rounded-lg p-6 shadow-sm max-h-screen overflow-y-auto">
+          <h2 className="text-xl font-semibold mb-4">Edit Resume</h2>
+          
+          {/* Personal Info */}
+          <div className="mb-6">
+            <h3 className="font-medium mb-3 flex items-center gap-2">
+              <User size={18} style={{ color: selectedColor }} />
+              Personal Information
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={resumeData.name}
+                onChange={(e) => updateResumeData('name', e.target.value)}
+                className="w-full p-2 border rounded-lg"
+              />
+              <input
+                type="text"
+                placeholder="Role or Designation"
+                value={resumeData.role}
+                onChange={(e) => updateResumeData('role', e.target.value)}
+                className="w-full p-2 border rounded-lg"
+              />
+              <input
+                type="tel"
+                placeholder="Phone Number"
+                value={resumeData.phone}
+                onChange={(e) => updateResumeData('phone', e.target.value)}
+                className="w-full p-2 border rounded-lg"
+              />
+              <input
+                type="email"
+                placeholder="Email Address"
+                value={resumeData.email}
+                onChange={(e) => updateResumeData('email', e.target.value)}
+                className="w-full p-2 border rounded-lg"
+              />
+              <input
+                type="url"
+                placeholder="LinkedIn URL"
+                value={resumeData.linkedin}
+                onChange={(e) => updateResumeData('linkedin', e.target.value)}
+                className="w-full p-2 border rounded-lg"
+              />
+              <input
+                type="text"
+                placeholder="Location (City, State)"
+                value={resumeData.location}
+                onChange={(e) => updateResumeData('location', e.target.value)}
+                className="w-full p-2 border rounded-lg"
+              />
             </div>
-          ))}
-        </section>
+          </div>
+
+          {/* Summary */}
+          <div className="mb-6">
+            <h3 className="font-medium mb-3">Professional Summary</h3>
+            <textarea
+              placeholder="Professional summary text here..."
+              value={resumeData.summary}
+              onChange={(e) => updateResumeData('summary', e.target.value)}
+              className="w-full p-2 border rounded-lg h-24 resize-none"
+            />
+          </div>
+
+          {/* Experience */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium flex items-center gap-2">
+                <Briefcase size={18} style={{ color: selectedColor }} />
+                Work Experience
+              </h3>
+              <button
+                onClick={() => addArrayItem('experience', { title: "", companyName: "", date: "", companyLocation: "", accomplishment: [""] })}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            {resumeData.experience.map((exp, index) => (
+              <div key={index} className="border rounded-lg p-3 mb-3">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1 grid grid-cols-1 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Job Title"
+                      value={exp.title}
+                      onChange={(e) => updateResumeData(`experience.${index}.title`, e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Company Name"
+                      value={exp.companyName}
+                      onChange={(e) => updateResumeData(`experience.${index}.companyName`, e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Start - End Dates"
+                      value={exp.date}
+                      onChange={(e) => updateResumeData(`experience.${index}.date`, e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Company Location"
+                      value={exp.companyLocation}
+                      onChange={(e) => updateResumeData(`experience.${index}.companyLocation`, e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeArrayItem('experience', index)}
+                    className="text-red-500 hover:text-red-700 ml-2"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                {exp.accomplishment.map((acc, accIndex) => (
+                  <div key={accIndex} className="flex gap-2 mb-1">
+                    <input
+                      type="text"
+                      placeholder={`Accomplishment ${accIndex + 1}`}
+                      value={acc}
+                      onChange={(e) => {
+                        const newAccomplishments = [...exp.accomplishment];
+                        newAccomplishments[accIndex] = e.target.value;
+                        updateResumeData(`experience.${index}.accomplishment`, newAccomplishments);
+                      }}
+                      className="flex-1 p-2 border rounded"
+                    />
+                    <button
+                      onClick={() => {
+                        const newAccomplishments = exp.accomplishment.filter((_, i) => i !== accIndex);
+                        updateResumeData(`experience.${index}.accomplishment`, newAccomplishments);
+                      }}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => {
+                    const newAccomplishments = [...exp.accomplishment, ""];
+                    updateResumeData(`experience.${index}.accomplishment`, newAccomplishments);
+                  }}
+                  className="text-blue-600 hover:text-blue-800 text-sm"
+                >
+                  + Add Accomplishment
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Education */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium flex items-center gap-2">
+                <GraduationCap size={18} style={{ color: selectedColor }} />
+                Education
+              </h3>
+              <button
+                onClick={() => addArrayItem('education', { degree: "", institution: "", duration: "", location: "" })}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            {resumeData.education.map((edu, index) => (
+              <div key={index} className="border rounded-lg p-3 mb-3">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1 grid grid-cols-1 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Degree Name"
+                      value={edu.degree}
+                      onChange={(e) => updateResumeData(`education.${index}.degree`, e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Institution Name"
+                      value={edu.institution}
+                      onChange={(e) => updateResumeData(`education.${index}.institution`, e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Start - End Dates"
+                      value={edu.duration}
+                      onChange={(e) => updateResumeData(`education.${index}.duration`, e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Institution Location"
+                      value={edu.location}
+                      onChange={(e) => updateResumeData(`education.${index}.location`, e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeArrayItem('education', index)}
+                    className="text-red-500 hover:text-red-700 ml-2"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Achievements */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium flex items-center gap-2">
+                <Brain size={18} style={{ color: selectedColor }} />
+                Achievements
+              </h3>
+              <button
+                onClick={() => addArrayItem('achievements', { keyAchievements: "", describe: "" })}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            {resumeData.achievements.map((achievement, index) => (
+              <div key={index} className="border rounded-lg p-3 mb-3">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1 grid grid-cols-1 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Achievement Title"
+                      value={achievement.keyAchievements}
+                      onChange={(e) => updateResumeData(`achievements.${index}.keyAchievements`, e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                    <textarea
+                      placeholder="Description of the achievement"
+                      value={achievement.describe}
+                      onChange={(e) => updateResumeData(`achievements.${index}.describe`, e.target.value)}
+                      className="w-full p-2 border rounded h-20 resize-none"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeArrayItem('achievements', index)}
+                    className="text-red-500 hover:text-red-700 ml-2"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Skills */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium flex items-center gap-2">
+                <Brain size={18} style={{ color: selectedColor }} />
+                Skills
+              </h3>
+              <button
+                onClick={() => addArrayItem('skills', "")}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            {resumeData.skills.map((skill, index) => (
+              <div key={index} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  placeholder={`Skill ${index + 1}`}
+                  value={skill}
+                  onChange={(e) => {
+                    const newSkills = [...resumeData.skills];
+                    newSkills[index] = e.target.value;
+                    updateResumeData('skills', newSkills);
+                  }}
+                  className="flex-1 p-2 border rounded"
+                />
+                <button
+                  onClick={() => removeArrayItem('skills', index)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Languages */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium flex items-center gap-2">
+                <Brain size={18} style={{ color: selectedColor }} />
+                Languages
+              </h3>
+              <button
+                onClick={() => addArrayItem('languages', "")}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            {resumeData.languages.map((language, index) => (
+              <div key={index} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  placeholder={`Language ${index + 1}`}
+                  value={language}
+                  onChange={(e) => {
+                    const newLanguages = [...resumeData.languages];
+                    newLanguages[index] = e.target.value;
+                    updateResumeData('languages', newLanguages);
+                  }}
+                  className="flex-1 p-2 border rounded"
+                />
+                <button
+                  onClick={() => removeArrayItem('languages', index)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Projects */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium flex items-center gap-2">
+                <Brain size={18} style={{ color: selectedColor }} />
+                Projects
+              </h3>
+              <button
+                onClick={() => addArrayItem('projects', { title: "", description: "", duration: "" })}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            {resumeData.projects.map((project, index) => (
+              <div key={index} className="border rounded-lg p-3 mb-3">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1 grid grid-cols-1 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Project Title"
+                      value={project.title}
+                      onChange={(e) => updateResumeData(`projects.${index}.title`, e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                    <textarea
+                      placeholder="Project Description"
+                      value={project.description}
+                      onChange={(e) => updateResumeData(`projects.${index}.description`, e.target.value)}
+                      className="w-full p-2 border rounded h-20 resize-none"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Project Duration"
+                      value={project.duration}
+                      onChange={(e) => updateResumeData(`projects.${index}.duration`, e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeArrayItem('projects', index)}
+                    className="text-red-500 hover:text-red-700 ml-2"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Courses */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-medium flex items-center gap-2">
+                <Brain size={18} style={{ color: selectedColor }} />
+                Courses
+              </h3>
+              <button
+                onClick={() => addArrayItem('courses', { title: "", description: "" })}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            {resumeData.courses.map((course, index) => (
+              <div key={index} className="border rounded-lg p-3 mb-3">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1 grid grid-cols-1 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Course Title"
+                      value={course.title}
+                      onChange={(e) => updateResumeData(`courses.${index}.title`, e.target.value)}
+                      className="w-full p-2 border rounded"
+                    />
+                    <textarea
+                      placeholder="Course Description"
+                      value={course.description}
+                      onChange={(e) => updateResumeData(`courses.${index}.description`, e.target.value)}
+                      className="w-full p-2 border rounded h-20 resize-none"
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeArrayItem('courses', index)}
+                    className="text-red-500 hover:text-red-700 ml-2"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Preview Section */}
+        <div className="w-1/2">
+          <div
+            className="bg-white border rounded-lg p-6 shadow-sm max-h-screen overflow-y-auto"
+            style={{
+              zoom: `${zoom}%`,
+              fontFamily: selectedFont,
+              fontSize: `${fontSize}px`
+            }}
+          >
+            {/* Header */}
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold mb-2" style={{ color: selectedColor }}>
+                {resumeData.name || "Full Name"}
+              </h1>
+              <p className="text-lg mb-3" style={{ color: selectedColor }}>
+                {resumeData.role || "Role or Designation"}
+              </p>
+              <div className="flex justify-center gap-4 text-sm">
+                <span>{resumeData.phone || "Phone Number"}</span>
+                <span>{resumeData.email || "Email Address"}</span>
+                <span>{resumeData.linkedin || "LinkedIn URL"}</span>
+              </div>
+              <p className="text-sm mt-1">{resumeData.location || "Location"}</p>
+            </div>
+
+            {/* Professional Summary */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+                Professional Summary
+              </h2>
+              <p className="text-justify">
+                {resumeData.summary || "Professional summary text here."}
+              </p>
+            </div>
+
+            {/* Work Experience */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+                Work Experience
+              </h2>
+              {resumeData.experience.map((exp, index) => (
+                <div key={index} className="mb-4">
+                  <div className="flex justify-between items-start mb-1">
+                    <div>
+                      <h3 className="font-semibold">{exp.title || "Job Title"}</h3>
+                      <p className="text-sm">{exp.companyName || "Company Name"}</p>
+                    </div>
+                    <div className="text-right text-sm">
+                      <p>{exp.date || "Start - End Dates"}</p>
+                      <p>{exp.companyLocation || "Company Location"}</p>
+                    </div>
+                  </div>
+                  <ul className="list-disc list-inside text-sm">
+                    {exp.accomplishment.map((acc, accIndex) => (
+                      acc && <li key={accIndex}>{acc}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            {/* Education */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+                Education
+              </h2>
+              {resumeData.education.map((edu, index) => (
+                <div key={index} className="mb-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold">{edu.degree || "Degree Name"}</h3>
+                      <p className="text-sm">{edu.institution || "Institution Name"}</p>
+                    </div>
+                    <div className="text-right text-sm">
+                      <p>{edu.duration || "Start - End Dates"}</p>
+                      <p>{edu.location || "Institution Location"}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Achievements */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+                Achievements
+              </h2>
+              {resumeData.achievements.map((achievement, index) => (
+                <div key={index} className="mb-3">
+                  <h3 className="font-semibold">{achievement.keyAchievements || "Achievement Title"}</h3>
+                  <p className="text-sm text-justify">{achievement.describe || "Description of the achievement"}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Skills */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+                Skills
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {resumeData.skills.map((skill, index) => (
+                  skill && (
+                    <span key={index} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
+                      {skill}
+                    </span>
+                  )
+                ))}
+              </div>
+            </div>
+
+            {/* Languages */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+                Languages
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {resumeData.languages.map((lang, index) => (
+                  lang && (
+                    <span key={index} className="bg-gray-100 px-3 py-1 rounded-full text-sm">
+                      {lang}
+                    </span>
+                  )
+                ))}
+              </div>
+            </div>
+
+            {/* Projects */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+                Projects
+              </h2>
+              {resumeData.projects.map((project, index) => (
+                <div key={index} className="mb-4">
+                  <div className="flex justify-between items-start mb-1">
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{project.title || "Project Title"}</h3>
+                      <p className="text-sm text-justify">{project.description || "Project Description"}</p>
+                    </div>
+                    <div className="text-right text-sm">
+                      <p>{project.duration || "Project Duration"}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Courses */}
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold mb-3" style={{ color: selectedColor }}>
+                Courses
+              </h2>
+              {resumeData.courses.map((course, index) => (
+                <div key={index} className="mb-3">
+                  <h3 className="font-semibold">{course.title || "Course Title"}</h3>
+                  <p className="text-sm text-justify">{course.description || "Course Description"}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
