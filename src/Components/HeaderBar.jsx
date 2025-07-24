@@ -39,8 +39,6 @@ export default function HeaderBar({ resumeRef, resumeData }) {
     }
   };
 
-  // === Handlers ===
-
   const downloadResume = () => {
     if (!resumeRef || !resumeRef.current) {
       toast.error("❌ Resume preview not found!");
@@ -79,28 +77,12 @@ export default function HeaderBar({ resumeRef, resumeData }) {
     // TODO: Insert your Manual Edit logic (modal, navigation, etc.)
   };
 
-  const handleShare = (platform) => {
-    if (!resumeData) {
-      toast.error("❌ No resume data to share!");
-      return;
-    }
-    const message = `📄 Check out my resume!\n\n${resumeData.substring(0, 200)}...`;
-    switch (platform) {
-      case "whatsapp":
-        shareTextOnWhatsApp(message);
-        break;
-      case "facebook":
-        shareTextOnFacebook(message);
-        break;
-      case "twitter":
-        shareTextOnTwitter(message);
-        break;
-      case "native":
-        nativeWebShare(message);
-        break;
-      default:
-        toast.error("❌ Unknown share platform");
-    }
+    const handleShare = () => {
+    const message = "📄 Check out my resume!";
+    shareTextOnWhatsApp(message);
+    shareTextOnFacebook(message);
+    shareTextOnTwitter(message);
+    nativeWebShare(message);
   };
 
   return (
@@ -209,10 +191,14 @@ export default function HeaderBar({ resumeRef, resumeData }) {
 
           {/* Share Menu */}
           <Menu as="div" className="relative inline-block text-left">
-            <Menu.Button className="flex items-center gap-2 bg-green-100 text-green-900 px-4 py-2 rounded-md text-sm font-medium shadow hover:bg-green-200 transition-all">
-              <FaShareAlt className="text-lg" />
-              Share
-            </Menu.Button>
+            <button
+            onClick={handleShare}
+            className="flex items-center gap-2 bg-green-100 text-green-900 px-4 py-2 rounded-md text-sm font-medium shadow hover:bg-green-200 transition-all"
+          >
+            <FaShareAlt className="text-lg" />
+            Share
+          </button>
+
 
             <Menu.Items className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-md shadow-lg z-50 focus:outline-none">
               <div className="px-1 py-1">
