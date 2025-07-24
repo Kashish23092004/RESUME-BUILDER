@@ -1,17 +1,18 @@
 import React, { useRef, useState } from "react";
 import { Menu } from "@headlessui/react";
-import { BsUpload, BsShare } from "react-icons/bs";
+import { BsUpload } from "react-icons/bs";
 import { Link } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
 import workerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
+import ManualEdit from "./ManualEdit";
+import AIEnhance from "../pages/AIEnhance";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 const handleDownloadPDF = async (ref) => {
   if (!ref?.current) return;
-  
   try {
     const canvas = await html2canvas(ref.current, {
       useCORS: true,
@@ -19,12 +20,10 @@ const handleDownloadPDF = async (ref) => {
       allowTaint: true,
       backgroundColor: '#ffffff'
     });
-    
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    
     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
     pdf.save("Resume.pdf");
   } catch (error) {
@@ -77,10 +76,8 @@ export default function UploadResume() {
 
   const handleUpload = async () => {
     if (!selectedFile) return alert("Please select a file first!");
-
     const file = selectedFile;
     let textContent = "";
-
     if (file.type === "application/pdf") {
       const reader = new FileReader();
       reader.onload = async () => {
@@ -140,7 +137,6 @@ export default function UploadResume() {
 
   const handleShare = (platform) => {
     const shareText = `Check out my enhanced resume!\n\n${parsedText.substring(0, 200)}...`;
-    
     switch (platform) {
       case 'whatsapp':
         shareTextOnWhatsApp(shareText);
@@ -162,12 +158,12 @@ export default function UploadResume() {
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-10 flex flex-col items-center">
       <h1 className="text-3xl font-bold mb-2 text-center">Upload Your Resume</h1>
-      <p className="text-gray-600 mb-6 text-center max-w-md">
+      <p className="text-gray-600 mb-6 text-center w-full max-w-3xl mx-auto">
         Upload your resume in PDF or Word format to get started with AI enhancement
       </p>
 
       {!isUploaded ? (
-        <div className="w-full max-w-xl bg-white border-2 border-dashed border-gray-300 p-10 rounded-lg shadow-sm text-center">
+        <div className="w-full bg-white border-2 border-dashed border-gray-300 p-10 rounded-lg shadow-sm text-center">
           <div className="text-5xl mb-4">📤</div>
           <p className="mb-1 font-medium">Drag & drop your resume here</p>
           <label
@@ -186,7 +182,6 @@ export default function UploadResume() {
           <p className="text-sm text-gray-400 mt-2">
             Supported formats: PDF, DOC, DOCX (Max 10MB)
           </p>
-
           {selectedFile && (
             <div className="mt-4 bg-gray-100 p-2 rounded text-sm">
               📄 {selectedFile.name}{" "}
@@ -195,7 +190,6 @@ export default function UploadResume() {
               </span>
             </div>
           )}
-
           <button
             onClick={handleUpload}
             className="mt-6 bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition"
@@ -204,136 +198,137 @@ export default function UploadResume() {
           </button>
         </div>
       ) : (
-        <div ref={resumeRef} className="w-full max-w-xl bg-white p-6 rounded-lg shadow">
-          <div className="bg-green-100 text-green-700 px-4 py-2 rounded mb-4 text-sm">
-            ✅ Resume uploaded successfully. You can now enhance it.
+        <>
+          <div ref={resumeRef} className="w-full bg-white p-6 rounded-lg shadow">
+            <div className="bg-green-100 text-green-700 px-4 py-2 rounded mb-4 text-sm">
+              ✅ Resume uploaded successfully. You can now enhance it.
+            </div>
+
+            <h2 className="text-lg font-semibold mb-2">Resume Content Preview</h2>
+            <textarea
+              rows={6}
+              className="w-full p-3 border border-gray-300 rounded mb-6 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={parsedText}
+              readOnly
+            />
+            <div className="flex justify-end flex-wrap gap-4">
+              <button
+                onClick={handleReset}
+                className="border px-4 py-2 rounded hover:bg-gray-100 text-sm"
+              >
+                Upload Another Resume
+              </button>
+
+              <Menu as="div" className="relative inline-block text-left">
+                <Menu.Button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+                  <BsUpload />
+                  Continue
+                </Menu.Button>
+                <Menu.Items className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-md shadow-lg z-50 focus:outline-none">
+                  <div className="px-1 py-1">
+                    <Menu.Item>
+                      {({ active }) => (
+                        <Link
+                          to="/manual-edit"
+                          className={`${
+                            active ? "bg-gray-100" : ""
+                          } w-full text-left px-4 py-2 text-sm block`}
+                        >
+                          ✏️ AI ENHANCED
+                        </Link>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <Link
+                          to="/ai"
+                          className={`${
+                            active ? "bg-gray-100" : ""
+                          } w-full text-left px-4 py-2 text-sm block`}
+                        >
+                          🤖 MANUAL EDIT
+                        </Link>
+                      )}
+                    </Menu.Item>
+                  </div>
+                </Menu.Items>
+              </Menu>
+
+              <button
+                onClick={handleDownloadClick}
+                disabled={isDownloading}
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDownloading ? "Generating..." : "📄 Download PDF"}
+              </button>
+
+              <Menu as="div" className="relative inline-block text-left">
+                <Menu.Items className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50 focus:outline-none">
+                  <div className="px-1 py-1">
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={() => handleShare('whatsapp')}
+                          className={`${
+                            active ? "bg-gray-100" : ""
+                          } w-full text-left px-4 py-2 text-sm block`}
+                        >
+                          📱 WhatsApp
+                        </button>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={() => handleShare('facebook')}
+                          className={`${
+                            active ? "bg-gray-100" : ""
+                          } w-full text-left px-4 py-2 text-sm block`}
+                        >
+                          📘 Facebook
+                        </button>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={() => handleShare('twitter')}
+                          className={`${
+                            active ? "bg-gray-100" : ""
+                          } w-full text-left px-4 py-2 text-sm block`}
+                        >
+                          🐦 Twitter
+                        </button>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={() => handleShare('native')}
+                          className={`${
+                            active ? "bg-gray-100" : ""
+                          } w-full text-left px-4 py-2 text-sm block`}
+                        >
+                          🔗 More Options
+                        </button>
+                      )}
+                    </Menu.Item>
+                  </div>
+                </Menu.Items>
+              </Menu>
+            </div>
           </div>
 
-          <h2 className="text-lg font-semibold mb-2">Resume Content Preview</h2>
-          <textarea
-            rows={6}
-            className="w-full p-3 border border-gray-300 rounded mb-6 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={parsedText}
-            readOnly
-          />
-
-          <div className="flex justify-end flex-wrap gap-4">
-            <button
-              onClick={handleReset}
-              className="border px-4 py-2 rounded hover:bg-gray-100 text-sm"
-            >
-              Upload Another Resume
-            </button>
-
-            <Menu as="div" className="relative inline-block text-left">
-              <Menu.Button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
-                <BsUpload />
-                Continue
-              </Menu.Button>
-
-              <Menu.Items className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-md shadow-lg z-50 focus:outline-none">
-                <div className="px-1 py-1">
-                  <Menu.Item>
-                    {({ active }) => (
-                      <Link
-                        to="/manual-edit"
-                        className={`${
-                          active ? "bg-gray-100" : ""
-                        } w-full text-left px-4 py-2 text-sm block`}
-                      >
-                        ✏️ AI ENHANCED
-                      </Link>
-                    )}
-                  </Menu.Item>
-
-                  <Menu.Item>
-                    {({ active }) => (
-                      <Link
-                        to="/ai"
-                        className={`${
-                          active ? "bg-gray-100" : ""
-                        } w-full text-left px-4 py-2 text-sm block`}
-                      >
-                        🤖 MANUAL EDIT
-                      </Link>
-                    )}
-                  </Menu.Item>
-                </div>
-              </Menu.Items>
-            </Menu>
-
-            <button
-              onClick={handleDownloadClick}
-              disabled={isDownloading}
-              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isDownloading ? "Generating..." : "📄 Download PDF"}
-            </button>
-
-            <Menu as="div" className="relative inline-block text-left">
-              <Menu.Button className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm">
-                <BsShare />
-                Share
-              </Menu.Button>
-
-              <Menu.Items className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50 focus:outline-none">
-                <div className="px-1 py-1">
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => handleShare('whatsapp')}
-                        className={`${
-                          active ? "bg-gray-100" : ""
-                        } w-full text-left px-4 py-2 text-sm block`}
-                      >
-                        📱 WhatsApp
-                      </button>
-                    )}
-                  </Menu.Item>
-
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => handleShare('facebook')}
-                        className={`${
-                          active ? "bg-gray-100" : ""
-                        } w-full text-left px-4 py-2 text-sm block`}
-                      >
-                        📘 Facebook
-                      </button>
-                    )}
-                  </Menu.Item>
-
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => handleShare('twitter')}
-                        className={`${
-                          active ? "bg-gray-100" : ""
-                        } w-full text-left px-4 py-2 text-sm block`}
-                      >
-                        🐦 Twitter
-                      </button>
-                    )}
-                  </Menu.Item>
-
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => handleShare('native')}
-                        className={`${
-                          active ? "bg-gray-100" : ""
-                        } w-full text-left px-4 py-2 text-sm block`}
-                      >
-                        🔗 More Options
-                      </button>
-                    )}
-                  </Menu.Item>
-                </div>
-              </Menu.Items>
-            </Menu>
+          {/* ManualEdit full width (add w-full if needed) */}
+          <div className="w-full">
+            <ManualEdit />
           </div>
-        </div>
+
+          {/* AIEnhance full width, ensure its root container is 100% */}
+          <div className="w-full">
+            <AIEnhance />
+          </div>
+        </>
       )}
     </div>
   );

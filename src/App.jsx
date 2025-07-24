@@ -1,21 +1,33 @@
-// src/App.jsx
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import HeaderBar from './Components/HeaderBar';
+import React, { useState } from 'react';
 import UploadResume from './Components/UploadResume';
-import ManualEdit from './pages/AIEnhance';
-import AIEnhance from './Components/ManualEdit';
+import ManualEdit from './Components/ManualEdit';
+import AIEnhance from './pages/AIEnhance';
+import HeaderBar from './Components/HeaderBar';
 
 const App = () => {
+  const [hasUploaded, setHasUploaded] = useState(false);
+  const handleUploadSuccess = () => {
+    setHasUploaded(true);
+  };
+
   return (
-    <>
-      <HeaderBar />
-      <Routes>
-        <Route path="/" element={<UploadResume />} />
-        <Route path="/manual-edit" element={<ManualEdit />} />
-        <Route path="/ai" element={<AIEnhance />} />
-      </Routes>
-    </>
+    <div className="container mx-auto px-4">
+          <HeaderBar/>
+      <div className="my-8">
+
+        <UploadResume onSuccess={handleUploadSuccess} />
+      </div>
+
+      {/* If uploaded, show the other components */}
+      {hasUploaded && (
+        <>
+          <div className="my-8">
+          </div>
+          <div className="my-8">
+          </div>
+        </>
+      )}
+    </div>
   );
 };
 
